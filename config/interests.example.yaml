@@ -1,0 +1,270 @@
+# Research-surveillance profile (version 2). Edit freely; re-read at every run.
+#
+# domains   : three research domains, each with weight, keywords, MeSH terms and (for the literature stream)
+#             AND-structured PubMed query groups. Every item from every stream is tagged with 1+ domains by
+#             keyword/MeSH matching, then confirmed/extended by the LLM in the same triage call.
+#             `keywords` feed domain tagging and the grants / trials / awards searches; `*` is a wildcard and
+#             short ALL-CAPS acronyms (HIV, LLM, AIDS) match case-sensitively.
+# literature_groups : a group matches when EVERY clause in `all` matches (AND); inside a clause any `mesh`
+#             heading or `tiab` phrase counts (OR). `weight` ranks candidates before the LLM sees them.
+#             A group may list extra `domains:` it should tag.
+# streams   : per-stream settings: enabled, schedule (informational; `lit gen-systemd` turns these into timers),
+#             candidate caps, model env var, optional daily_cap_usd, and stream-specific options.
+# people_to_watch : PIs whose new NIH awards are always surfaced, e.g.
+#             - {name: "Last, First", institution: "optional"}
+version: 2
+
+# What the LLM is told about you.
+profile: |
+  EXAMPLE PROFILE: replace this paragraph with a description of your own research interests. It is given to the model that scores every item, so be specific about what matters most, what matters somewhat, and what you do not want to see.
+
+  The reader is a researcher who wants to keep up with three areas:
+  - Methods: large language models and AI applied to clinical and health services research (information extraction from clinical notes, phenotyping, cohort identification, evaluation and safety of these systems).
+  - Infectious diseases: clinical, epidemiologic and implementation research.
+  - Substance use and HIV: prevention, treatment and health services research.
+
+  Prefer rigorous, reusable methods and studies with real-world data over small demonstrations. Treat opinion pieces and press releases as low relevance.
+
+# New awards for these PIs are always shown (RePORTER stream).
+people_to_watch: []
+
+# Soft preferences learned from your likes/dislikes. Maintained by approved tune-ups (🎛 Tuning on the page); edit freely.
+# They only re-rank (weights are clipped to -3..+2 on the 0-10 relevance scale); nothing is ever filtered out.
+learned:
+  preferences: ''
+  prefer: []
+  deprioritize: []
+
+# ---- Domains ---------------------------------------------------------------------------
+domains:
+  llm_ai:
+    label: LLM / AI
+    weight: 10
+    keywords: [large language model*, LLM, LLMs, GPT, ChatGPT, generative AI, foundation model*, natural language processing,
+      clinical NLP, machine learning, deep learning, artificial intelligence, AI agent*, agentic, chatbot*, predictive model*]
+    mesh: [Large Language Models, Natural Language Processing, Artificial Intelligence, Machine Learning, Deep Learning]
+    literature_groups:
+    - id: llm_clinical_extraction
+      label: LLM / NLP for clinical notes, phenotyping, chart review
+      weight: 10
+      all:
+      - mesh: [Large Language Models, Natural Language Processing, Artificial Intelligence, Machine Learning]
+        tiab: [large language model*, LLM, LLMs, GPT, ChatGPT, generative AI, foundation model*, natural language processing,
+          clinical NLP, language model*]
+      - mesh: [Electronic Health Records, Data Mining, Information Storage and Retrieval, Medical Records]
+        tiab: [clinical note*, electronic health record*, EHR, chart review, chart abstraction, information extraction,
+          phenotyp*, cohort identification, unstructured text, free-text, medical record*, discharge summar*]
+    - id: llm_evaluation
+      label: Evaluation, validation, bias and reporting of LLMs in medicine
+      weight: 10
+      all:
+      - mesh: [Large Language Models, Natural Language Processing, Artificial Intelligence]
+        tiab: [large language model*, LLM, LLMs, GPT, ChatGPT, generative AI, language model*]
+      - mesh: [Reproducibility of Results, Bias, Benchmarking, Validation Studies as Topic]
+        tiab: [benchmark*, validation, validat*, human abstraction, inter-rater, hallucinat*, bias, fairness, equity, reproducib*,
+          TRIPOD, reporting guideline*, reporting standard*, evaluat*, accuracy, safety]
+      - mesh: [Medicine, Delivery of Health Care, Clinical Medicine, Health Services Research]
+        tiab: [clinical, medicine, medical, health care, healthcare, patient*, health services]
+    - id: ai_prediction_id_addiction
+      label: AI prediction and decision support in HIV / ID / addiction
+      weight: 9
+      all:
+      - mesh: [Artificial Intelligence, Machine Learning, Natural Language Processing, 'Decision Support Systems, Clinical',
+          Forecasting]
+        tiab: [machine learning, artificial intelligence, deep learning, large language model*, LLM, predictive model*,
+          prediction model*, risk prediction, decision support, algorithm*, neural network*]
+      - mesh: [HIV Infections, Pre-Exposure Prophylaxis, Opioid-Related Disorders, Opiate Substitution Treatment, Drug Overdose,
+          Substance-Related Disorders, Communicable Diseases]
+        tiab: [HIV, PrEP, pre-exposure prophylaxis, opioid use disorder, OUD, MOUD, buprenorphine, methadone, overdose,
+          substance use, addiction, infectious disease*, sepsis, antimicrobial, bacteremia, endocarditis]
+      domains: [llm_ai, hiv_addiction, infectious_diseases]
+    - id: agentic_research_workflows
+      label: Agentic / tool-using LLM workflows for research
+      weight: 9
+      all:
+      - mesh: [Large Language Models, Artificial Intelligence]
+        tiab: [agentic, LLM agent*, AI agent*, language model agent*, tool use, tool-using, multi-agent, autonomous agent*,
+          coding agent*]
+      - mesh: [Research, Data Analysis, Systematic Reviews as Topic, Information Storage and Retrieval]
+        tiab: [literature synthesis, literature review, systematic review*, evidence synthesis, data analysis, statistical
+            analysis, scientific research, research workflow*, code generation, data science, biomedical research, clinical
+            research, epidemiolog*]
+    - id: llm_general_medicine
+      label: LLMs in medicine (general, lower specificity catch-all)
+      weight: 6
+      all:
+      - mesh: [Large Language Models]
+        tiab: [large language model*, LLM, LLMs, ChatGPT, GPT-4, GPT-5, generative AI, generative artificial intelligence]
+      - mesh: [Medicine, Delivery of Health Care, Clinical Medicine]
+        tiab: [clinical, medicine, medical, patient*, health care, healthcare, physician*]
+  infectious_diseases:
+    label: Infectious Diseases
+    weight: 4
+    keywords: [infectious disease*, infection*, sepsis, bacteremia, endocarditis, antimicrobial*, antibiotic*, antimicrobial
+        resistance, tuberculosis, hepatitis, Clostridioides difficile, COVID-19, SARS-CoV-2, influenza, vaccin*, syphilis,
+      gonorrhea, chlamydia, sexually transmitted, fungal infection*, osteomyelitis, antimicrobial stewardship]
+    mesh: [Communicable Diseases, Bacterial Infections, Sepsis, Bacteremia, Endocarditis, Anti-Bacterial Agents, 'Drug Resistance,
+        Microbial', Tuberculosis, Hepatitis C, COVID-19, Vaccines, Sexually Transmitted Diseases, Mycoses]
+    literature_groups: []
+  hiv_addiction:
+    label: HIV + Addiction
+    weight: 5
+    keywords: [HIV, AIDS, PrEP, pre-exposure prophylaxis, antiretroviral*, opioid use disorder, OUD, MOUD, buprenorphine,
+      methadone, naltrexone, overdose, substance use, addiction, people who inject drugs, injection drug use, fentanyl,
+      xylazine, alcohol use disorder, methamphetamine, stimulant use]
+    mesh: [HIV Infections, Pre-Exposure Prophylaxis, Anti-HIV Agents, Opioid-Related Disorders, Opiate Substitution Treatment,
+      Substance-Related Disorders, Drug Overdose, 'Substance Abuse, Intravenous', Alcohol Drinking]
+    literature_groups:
+    - id: hiv_care_continuum
+      label: HIV prevention and care continuum outcomes
+      weight: 4
+      all:
+      - mesh: [HIV Infections, Pre-Exposure Prophylaxis, Anti-HIV Agents]
+        tiab: [HIV, PrEP, pre-exposure prophylaxis, antiretroviral*, care continuum, viral suppression, linkage to care,
+          retention in care, long-acting injectable, cabotegravir, lenacapavir]
+      - mesh: [Treatment Outcome, Continuity of Patient Care, Health Services Accessibility, Patient Acceptance of Health
+            Care, Epidemiologic Studies, 'Outcome Assessment, Health Care']
+        tiab: [outcome*, continuum, retention, adherence, suppression, uptake, incidence, mortality, cohort, trial]
+    - id: oud_outcomes_infections
+      label: OUD treatment outcomes; infectious complications of drug use
+      weight: 4
+      all:
+      - mesh: [Opioid-Related Disorders, Opiate Substitution Treatment, Buprenorphine, Methadone, Drug Overdose, 'Substance
+            Abuse, Intravenous', Substance-Related Disorders]
+        tiab: [opioid use disorder, OUD, MOUD, buprenorphine, methadone, naltrexone, overdose, people who inject drugs,
+          injection drug use, substance use, fentanyl, xylazine]
+      - mesh: [Treatment Outcome, 'Endocarditis, Bacterial', Hepatitis C, HIV Infections, Soft Tissue Infections, Bacteremia,
+          Retention in Care]
+        tiab: [outcome*, retention, mortality, endocarditis, hepatitis C, HCV, HIV, skin and soft tissue infection*, bacteremia,
+          osteomyelitis, injection-related infection*, initiation]
+      domains: [hiv_addiction, infectious_diseases]
+
+# ---- Streams ---------------------------------------------------------------------------
+streams:
+  literature:
+    enabled: true
+    schedule: 04:00
+    model_env: LLM_MODEL
+    sources: [pubmed, medrxiv, arxiv]
+    window_days: 2
+    max_candidates: 60
+    major_quota: 20
+    batch_size: 15
+    abstract_words: 250
+    feedback_examples: 10
+    daily_cap_usd: null
+    major:
+      net:
+        mesh: [Artificial Intelligence, Large Language Models, Machine Learning, Natural Language Processing, HIV Infections,
+          Substance-Related Disorders, Opioid-Related Disorders, Communicable Diseases]
+        tiab: [artificial intelligence, large language model*, LLM, machine learning, deep learning, generative AI, ChatGPT,
+          HIV, PrEP, opioid*, substance use, overdose, addiction, infectious disease*, infection*, antimicrobial*, sepsis,
+          pandemic, vaccin*]
+      journals:
+      - {name: NEJM AI, ta: NEJM AI, filter: none}
+      - {name: Lancet Digital Health, ta: Lancet Digit Health, filter: none}
+      - {name: npj Digital Medicine, ta: NPJ Digit Med, filter: none}
+      - {name: JAMIA, ta: J Am Med Inform Assoc, filter: none}
+      - {name: Nature Medicine, ta: Nat Med, filter: net}
+      - {name: NEJM, ta: N Engl J Med, filter: net}
+      - {name: Lancet, ta: Lancet, filter: net}
+      - {name: JAMA, ta: JAMA, filter: net}
+      - {name: JAMA Network Open, ta: JAMA Netw Open, filter: net}
+      - {name: Annals of Internal Medicine, ta: Ann Intern Med, filter: net}
+      - {name: BMJ, ta: BMJ, filter: net}
+      - {name: Lancet HIV, ta: Lancet HIV, filter: none}
+      - {name: Clinical Infectious Diseases, ta: Clin Infect Dis, filter: net}
+      - {name: Journal of Infectious Diseases, ta: J Infect Dis, filter: net}
+      - {name: AIDS, ta: AIDS, filter: none}
+      - {name: JAIDS, ta: J Acquir Immune Defic Syndr, filter: none}
+      - {name: Addiction, ta: Addiction, filter: none}
+    medrxiv:
+      categories: [infectious diseases, hiv/aids, addiction medicine, health informatics, public health, epidemiology, health
+          policy, health systems and quality improvement, medical education, pharmacology and therapeutics]
+    arxiv:
+      categories: [cs.CL, cs.AI, cs.LG, stat.ML, stat.AP]
+      require_health_terms: true
+      health_terms: [clinical, medical, medicine, health, healthcare, patient*, hospital*, biomedical, EHR, electronic health
+          record*, disease*, diagnos*, physician*, epidemiolog*, public health, HIV, opioid*, addiction, substance use,
+        systematic review*, scientific literature, evidence synthesis]
+    exclude:
+      publication_types: [Published Erratum, Erratum, Comment, Retraction of Publication, Retraction Notice, Retracted Publication,
+        Expression of Concern]
+      title_patterns: [^erratum, ^correction, ^corrigendum, ^retraction, ^expression of concern, ^comment on, ^reply to,
+        ^notice of retraction, ^publisher correction, ^author correction]
+    digest: {min_relevance_mine: 6, min_relevance_major: 6, max_mine: 25, max_major: 8, send_if_empty: true, fallback_max_items: 10}
+  people: {enabled: true, schedule: '04:30', model_env: LLM_MODEL, window_days: 14, max_candidates: 40, batch_size: 15,
+    daily_cap_usd: 0.02, max_records: 300}
+  trials:
+    enabled: true
+    schedule: 04:10
+    model_env: LLM_MODEL
+    window_days: 2
+    max_candidates: 40
+    batch_size: 15
+    daily_cap_usd: 0.04
+    ai_terms: [large language model*, LLM, artificial intelligence, machine learning, deep learning, chatbot*, natural language
+        processing, clinical decision support, predictive model*]
+    track_statuses: [NOT_YET_RECRUITING, RECRUITING, ENROLLING_BY_INVITATION, ACTIVE_NOT_RECRUITING, SUSPENDED, TERMINATED,
+      COMPLETED, WITHDRAWN]
+  grants:
+    enabled: true
+    schedule: 04:20
+    model_env: LLM_MODEL
+    window_days: 3
+    max_candidates: 40
+    batch_size: 15
+    daily_cap_usd: 0.03
+    min_relevance: 4
+    fallback_max_items: 10
+    refresh_limit: 120
+    weekly_summary: friday
+    deadline_flag_days: 60
+    agencies: [HHS-NIH11, HHS-AHRQ, HHS-CDC-NCHHSTP, HHS-CDC-NCEZID, HHS-CDC-NCIPC, HHS-CDC-NCCDPHP, HHS-HRSA, HHS-SAMHS-SAMHSA]
+    institutes: [NIDA, NIAID, NIAAA, NIMH, NLM, NIMHD]
+    mechanisms: [R01, R21, R34, K*, U*]
+    strict_preferences: false
+    institute_domains: {NIDA: hiv_addiction, NIAAA: hiv_addiction, NIAID: infectious_diseases, NLM: llm_ai}
+  reporter:
+    enabled: true
+    schedule: sun 04:15
+    model_env: LLM_MODEL
+    window_days: 14
+    max_candidates: 60
+    batch_size: 15
+    daily_cap_usd: 0.04
+    award_types: ['1', '2']
+    watch_award_types: ['1', '2', '3']
+  briefing: {enabled: true, schedule: '04:45', model_env: LLM_MODEL_BRIEFING, weekly_day: monday, min_items: 3, max_items: 60,
+    lookback_hours: 26, daily_cap_usd: 0.1, min_relevance: 5}
+  podcast:
+    enabled: true
+    on_demand: true
+    separate_budget: true
+    est_cost_usd: 0.22
+    schedule: on demand
+    model_env: LLM_MODEL_PODCAST
+    target_minutes: 10
+    monday_extra_minutes: 2
+    words_per_minute: 175
+    min_items: 3
+    max_items: 30
+    min_relevance: 5
+    daily_cap_usd: 0.5
+    keep_days: 30
+    bitrate: 64k
+    abstract_words: 90
+    dive: true
+    dive_minutes: 4
+    dive_min_relevance: 6
+    dive_attempts: 12
+    fulltext_chars: 28000
+    voice_dir: data/voices
+    lexicon: config/pronunciation.yaml
+    hosts:
+      A: {name: Oliver, model: en_GB-alan-medium, length_scale: 0.85}
+      B: {name: Hannah, model: en_US-hfc_female-medium, length_scale: 1.0}
+  tuning: {enabled: true, schedule: '05:00', model_env: LLM_MODEL_TUNING, first_after: 10, every: 20, min_support: 3, min_share: 0.7,
+    daily_cap_usd: 0.1}
+  journal_club: {enabled: true, schedule: 'mon 04:35', model_env: LLM_MODEL_JOURNAL_CLUB, rotate_domains: true, lookback_days: 7,
+    alternates: 2, min_relevance: 6}

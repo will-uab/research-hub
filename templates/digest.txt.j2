@@ -1,0 +1,43 @@
+{{ subject }}
+{{ '=' * subject|length }}
+{% if fallback %}
+!! Budget guard tripped{% if fallback_reason %} ({{ fallback_reason }}){% endif %}: {{ n_unscored }} paper(s) below are keyword-ranked only (no LLM summary).
+{% endif %}
+{% if empty %}
+Nothing notable today.
+{% endif %}
+{% macro item(p, n) %}
+{{ n }}. {{ p.title }}{% if p.is_preprint %}  [PREPRINT]{% endif %}{% if p.is_notice %}  [NOTICE]{% endif %}
+
+   {% if p.author_str %}{{ p.author_str }} | {% endif %}{{ p.source_label }}{% if p.date %} | {{ p.date }}{% endif %}{% if p.llm_scored %} | relevance {{ '%.0f' % p.relevance }}/10{% endif %}
+
+   {{ p.url }}
+{% if p.takeaway %}   Takeaway: {{ p.takeaway }}
+{% endif %}{% if p.why %}   Why: {{ p.why }}
+{% endif %}{% if p.abstract %}
+{{ p.abstract | wrap }}
+{% endif %}
+   Feedback: lit feedback +{{ p.key }}   /   -{{ p.key }}
+{% endmacro %}
+{% if mine %}
+FOR YOUR RESEARCH ({{ mine|length }})
+------------------------------------------
+{% for p in mine %}{{ item(p, loop.index) }}
+{% endfor %}{% endif %}
+{% if major %}
+MAJOR PAPERS IN YOUR FIELDS ({{ major|length }})
+------------------------------------------
+{% for p in major %}{{ item(p, loop.index) }}
+{% endfor %}{% endif %}
+{% if notices %}
+NOTICES ON PAPERS YOU WERE SENT EARLIER
+------------------------------------------
+{% for p in notices %}{{ item(p, loop.index) }}
+{% endfor %}{% endif %}
+--
+Retrieved {{ stats.retrieved }} ({{ stats.by_source }}) | screened {{ stats.screened }} | sent {{ stats.sent }}
+{% if stats.dry_run %}Dry run (no API calls): estimated cost for this run ${{ '%.4f' % stats.cost_run }}, daily budget ${{ '%.2f' % stats.budget }}{% else %}API cost today: ${{ '%.4f' % stats.cost_today }} (this run ${{ '%.4f' % stats.cost_run }}; daily budget ${{ '%.2f' % stats.budget }}){% endif %}
+
+{% if errors %}Errors:
+{% for e in errors %}  - {{ e }}
+{% endfor %}{% else %}No source errors.{% endif %}

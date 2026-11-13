@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Wrapper: always run inside the project venv, from the project root.
+DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+cd "$DIR" && exec "$DIR/.venv/bin/python" -m litsearch "$@"

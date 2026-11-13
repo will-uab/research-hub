@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light">
+<title>{{ subject }}</title></head>
+<body style="margin:0;padding:0;background:#f4f5f7;">
+<div style="max-width:720px;margin:0 auto;padding:16px;font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#1d2330;font-size:15px;line-height:1.45;">
+{% if back_link %}<a href="{{ back_link }}" style="font-size:14px;color:#0b5cad;text-decoration:none;">&larr; Daily digests</a>{% endif %}
+<h1 style="font-size:20px;margin:8px 0 4px;">Literature digest · {{ date }}</h1>
+{% if fallback %}
+<p style="background:#fff4d6;border:1px solid #e8c766;border-radius:6px;padding:8px 12px;margin:8px 0;">
+<strong>Budget guard tripped{% if fallback_reason %} ({{ fallback_reason }}){% endif %}:</strong>
+{{ n_unscored }} paper(s) below are ranked by keyword score only and have no LLM summary or relevance score.</p>
+{% endif %}
+{% if empty %}
+<p>Nothing notable today.</p>
+{% endif %}
+
+{% macro item(p) %}
+<div style="background:#fff;border:1px solid #dfe3ea;border-radius:8px;padding:12px 14px;margin:10px 0;">
+  <div style="font-size:16px;font-weight:600;">
+    <a href="{{ p.url }}" style="color:#0b5cad;text-decoration:none;">{{ p.title }}</a>
+    {% if p.is_preprint %}<span style="font-size:11px;font-weight:600;color:#7a4b00;background:#ffe3b3;border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:middle;">PREPRINT</span>{% endif %}
+    {% if p.is_notice %}<span style="font-size:11px;font-weight:600;color:#8a1f1f;background:#fbd5d5;border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:middle;">NOTICE</span>{% endif %}
+  </div>
+  <div style="color:#5a6475;font-size:13px;margin:3px 0;">
+    {% if p.author_str %}{{ p.author_str }} · {% endif %}<em>{{ p.source_label }}</em>{% if p.date %} · {{ p.date }}{% endif %}
+    {% if p.llm_scored %} · relevance {{ '%.0f' % p.relevance }}/10{% endif %}
+  </div>
+  {% if p.takeaway %}<div style="margin:6px 0;">{{ p.takeaway }}</div>{% endif %}
+  {% if p.why %}<div style="color:#5a6475;font-size:13px;">Why: {{ p.why }}</div>{% endif %}
+  {% if p.abstract %}
+  <details style="margin-top:6px;"><summary style="cursor:pointer;color:#0b5cad;font-size:13px;">Abstract</summary>
+    <p style="font-size:13.5px;margin:6px 0 0;">{{ p.abstract }}</p></details>
+  {% endif %}
+  <div style="font-size:12px;color:#7b8494;margin-top:8px;">
+    {% for name, href in p.links %}<a href="{{ href }}" style="color:#7b8494;">{{ name }}</a> · {% endfor %}
+    feedback: <code>lit feedback +{{ p.key }}</code> / <code>-{{ p.key }}</code>
+  </div>
+</div>
+{% endmacro %}
+
+{% if mine %}<h2 style="font-size:17px;margin:20px 0 4px;">For your research ({{ mine|length }})</h2>
+{% for p in mine %}{{ item(p) }}{% endfor %}{% endif %}
+
+{% if major %}<h2 style="font-size:17px;margin:20px 0 4px;">Major papers in your fields ({{ major|length }})</h2>
+{% for p in major %}{{ item(p) }}{% endfor %}{% endif %}
+
+{% if notices %}<h2 style="font-size:17px;margin:20px 0 4px;">Notices on papers you were sent earlier</h2>
+{% for p in notices %}{{ item(p) }}{% endfor %}{% endif %}
+
+<hr style="border:none;border-top:1px solid #dfe3ea;margin:20px 0 8px;">
+<div style="font-size:12px;color:#7b8494;">
+Retrieved {{ stats.retrieved }} ({{ stats.by_source }}) · screened {{ stats.screened }} · sent {{ stats.sent }}<br>
+{% if stats.dry_run %}Dry run (no API calls): estimated cost for this run ${{ '%.4f' % stats.cost_run }}, daily budget ${{ '%.2f' % stats.budget }}{% else %}API cost today: ${{ '%.4f' % stats.cost_today }} (this run ${{ '%.4f' % stats.cost_run }}; daily budget ${{ '%.2f' % stats.budget }}){% endif %}<br>
+{% if errors %}<span style="color:#a02323;">Source/system errors:
+{% for e in errors %}<br>• {{ e }}{% endfor %}</span>{% else %}No source errors.{% endif %}
+</div>
+</div></body></html>

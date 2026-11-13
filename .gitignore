@@ -1,0 +1,17 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+data/
+logs/
+out/
+.pytest_cache/
+site/
+
+# personal config and generated files (never commit these)
+config/interests.yaml
+config/interests.v1.yaml.bak
+config/interests.v1-to-v2.diff
+config/.interests.lock
+systemd/
+.claude/

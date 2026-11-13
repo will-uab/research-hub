@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light"><title>Research hub</title>
+<link rel="stylesheet" href="style.css?v=__BUILD__">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Research hub</h1>
+    <span><a id="tune-link" class="quiet" href="#" hidden>🎛 Tuning</a> · <a id="brief-link" class="quiet" href="#" hidden>📰 Briefing</a> · <a id="pod-link" class="quiet" href="#" hidden>🎧 Listen</a> · <a class="quiet" href="digests.html">Digest archive</a></span>
+  </header>
+  <div id="err" class="err" hidden></div>
+  <section id="tuning" class="tuning" aria-label="Tuning proposals" hidden></section>
+  <section id="briefing" class="briefing" aria-label="Briefing" hidden></section>
+  <section id="podcast" class="podcast" aria-label="Audio briefing" hidden></section>
+  <section id="status" class="status" aria-label="System status"></section>
+  <section id="whatsnew" class="whatsnew" aria-label="What's new"></section>
+
+  <nav class="controls" aria-label="Filters">
+    <div class="seg" role="tablist" aria-label="View mode">
+      <button id="v-domain" role="tab" data-view="domain">By domain</button>
+      <button id="v-stream" role="tab" data-view="stream">By stream</button>
+      <button id="v-person" role="tab" data-view="person">By person</button>
+    </div>
+    <div id="primary" class="chips" role="tablist"></div>
+    <div id="secondary" class="chips small"></div>
+    <div class="row">
+      <label>Range <select id="range">
+        <option value="7">7 days</option><option value="14">14 days</option><option value="30">30 days</option><option value="90">90 days</option>
+      </select></label>
+      <label>Sort <select id="sort">
+        <option value="relevance">Relevance</option><option value="newest">Newest</option><option value="deadline">Deadline</option>
+      </select></label>
+      <label class="grow">Min relevance <span id="relval">0</span>
+        <input id="rel" type="range" min="0" max="10" step="1" value="0"></label>
+    </div>
+    <div id="toggles" class="toggles" hidden>
+      <label class="chk"><input type="checkbox" id="onlysaved"> 🔖 Saved only</label>
+      <label class="chk"><input type="checkbox" id="hideread"> Hide read</label>
+    </div>
+    <input id="q" class="search" type="search" placeholder="Search titles, people, sponsors, abstracts…" autocomplete="off">
+    <div id="count" class="count"></div>
+  </nav>
+
+  <section id="person" class="person" aria-label="People you follow" hidden></section>
+  <main id="list"></main>
+  <button id="more" class="more" hidden>Show more</button>
+  <footer class="foot" id="foot"></footer>
+</div>
+<script src="app.js?v=__BUILD__"></script>
+</body></html>
