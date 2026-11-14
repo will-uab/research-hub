@@ -185,6 +185,7 @@ def world(tmp_path, monkeypatch, cfg2):
     s = settings_for(tmp_path, **TUNE_ENV)
     (tmp_path / "config").mkdir()
     cfg = json.loads(json.dumps(cfg2)); cfg["learned"] = learned.normalise({}); cfg["people_to_watch"] = []
+    cfg["streams"]["tuning"]["topics"] = False                        # methods-topic suggestions have their own tests (test_methods.py)
     (tmp_path / "config" / "interests.yaml").write_text(config.render_v2_yaml(cfg))
     db = DB(s.db_path)
     ids = [db.record(Paper("pubmed", f"Veterinary {SECOND[i % 6]} paper number {i}", "abs", pmid=str(i), relevance=8, domains=["llm_ai"],

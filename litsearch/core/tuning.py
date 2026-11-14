@@ -11,7 +11,7 @@ import re
 from collections import defaultdict
 from datetime import datetime, timezone
 
-from . import config, learned
+from . import config, learned, methods
 
 HALF_LIFE_DAYS = 180
 STOP = set("""a about above after again against all also among an and any are as at based be because been before being between both but by can
@@ -184,6 +184,15 @@ def apply_proposal(settings, prop: dict) -> dict | None:
         rule = {"kind": pl["kind"], "value": pl["value"], "weight": float(pl["weight"]), "note": (prop.get("why") or "")[:140],
                 "evidence": prop.get("evidence", [])[:8]}
         (l["prefer"] if rule["weight"] > 0 else l["deprioritize"]).append(rule)
+    elif kind == "topic":                                                                   # a methods-curriculum topic: stored in your interests.yaml
+        t = methods.normalise_topic(pl)
+        if t is None:
+            raise ValueError("invalid methods topic")
+        mine = list(config.load_interests(settings.interests_path).get("methods_topics") or [])
+        if all(x.get("id") != t["id"] for x in mine):
+            mine.append(t)
+            config.save_key(settings.interests_path, "methods_topics", mine)
+        return {"added": t["id"]}
     else:                                                                                  # follow: acknowledged; you follow via the search box
         return None
     config.save_key(settings.interests_path, "learned", l)
@@ -193,6 +202,10 @@ def apply_proposal(settings, prop: dict) -> dict | None:
 def undo_proposal(settings, prop: dict) -> None:
     before = prop.get("before")
     if before is None:
+        return
+    if prop["kind"] == "topic":
+        mine = [x for x in (config.load_interests(settings.interests_path).get("methods_topics") or []) if x.get("id") != prop["payload"].get("id")]
+        config.save_key(settings.interests_path, "methods_topics", mine)
         return
     l = _learned_now(settings)
     if prop["kind"] == "preferences":

@@ -19,6 +19,7 @@ class RunOptions:
     max_candidates: int | None = None
     force: bool = False               # tuning: run even though too few new ratings have accumulated
     redo: bool = False                # podcast: replace today's episode (costs another model call)
+    methods_topic: str = "auto"       # podcast: "auto", "none", a curriculum topic id, or "custom:<free text>"
     dry_db: "Path | None" = None      # dry-run only: keep the preview DB here instead of a throwaway temp file
 
 

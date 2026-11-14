@@ -1,0 +1,223 @@
+# Starting curriculum for the podcast's "methods deep dive" (a short teaching segment on a fundamental informatics / AI / statistics topic).
+#
+# Each topic: id (slug), title, area, keywords (matched against the day's items to pick a topic that links to a paper of the day;
+# whole words, case-insensitive; short ALL-CAPS acronyms match case-sensitively), scope (what the segment should cover and where to
+# stop: it steers the writer and keeps the lesson textbook-level). `worked_example: confusion` adds a worked example whose numbers
+# are computed by code (see litsearch/core/worked_examples.py) instead of by the model.
+#
+# You do not need to edit this file: suggested additions arrive as proposals in the page's Tuning panel and are stored in your
+# interests.yaml (methods_topics). This file is the shared starting list.
+topics:
+  # ------------------------------------------------------------------ metrics and imbalance
+  - id: class-imbalance-metrics
+    title: "Class imbalance and how to read F1, balanced accuracy and MCC"
+    area: Evaluation metrics
+    worked_example: confusion
+    keywords: [imbalance, imbalanced, rare outcome, rare event, prevalence, F1, balanced accuracy, precision, recall, sensitivity, specificity, MCC, oversampling, SMOTE, undersampling]
+    scope: "Why accuracy misleads when one class is rare; what precision, recall, specificity, F1, balanced accuracy and the Matthews correlation coefficient each say and hide; macro vs micro averaging; how prevalence changes predictive values; what to report instead of a single number."
+  - id: pr-vs-roc
+    title: "ROC curves, AUROC and precision-recall curves"
+    area: Evaluation metrics
+    keywords: [AUROC, AUC, ROC, receiver operating characteristic, precision-recall, AUPRC, area under the curve, discrimination]
+    scope: "What ROC and precision-recall curves plot; how to interpret AUROC and AUPRC; why AUROC can look good on rare outcomes while precision is poor; why neither says anything about calibration or the chosen threshold."
+  - id: calibration
+    title: "Calibration of risk predictions"
+    area: Evaluation metrics
+    keywords: [calibration, calibrated, calibration curve, reliability, Brier, expected calibration error, ECE, overconfident, miscalibration]
+    scope: "Calibration vs discrimination; calibration plots, calibration slope and intercept, Brier score, expected calibration error; common reasons for miscalibration (shift, overfitting, resampling); recalibration at a high level."
+  - id: threshold-choice-dca
+    title: "Choosing a threshold, cost-sensitive evaluation and decision curves"
+    area: Evaluation metrics
+    keywords: [threshold, decision curve, net benefit, cost-sensitive, operating point, alert fatigue, number needed to screen, decision threshold]
+    scope: "Why a threshold is a clinical and operational decision; trading false positives against false negatives; net benefit and decision curve analysis explained in words; workload and alert fatigue."
+  - id: diagnostic-accuracy-bayes
+    title: "Sensitivity, specificity and predictive values: Bayes' rule for test results"
+    area: Evaluation metrics
+    worked_example: confusion
+    keywords: [sensitivity, specificity, positive predictive value, PPV, NPV, negative predictive value, likelihood ratio, diagnostic accuracy, screening]
+    scope: "How predictive values depend on prevalence; likelihood ratios; natural-frequency explanations; why the same model can be useful in one population and useless in another."
+  - id: multiclass-multilabel-metrics
+    title: "Multi-class and multi-label evaluation: macro, micro and weighted averages"
+    area: Evaluation metrics
+    keywords: [multi-class, multiclass, multi-label, multilabel, macro-averaged, micro-averaged, weighted F1, confusion matrix, per-class]
+    scope: "Confusion matrices beyond two classes; macro, micro and weighted averaging and when they disagree; per-class reporting; label-frequency effects on headline numbers."
+  - id: text-generation-metrics
+    title: "Evaluating generated text: BLEU, ROUGE, BERTScore and human judgment"
+    area: Evaluation metrics
+    keywords: [BLEU, ROUGE, BERTScore, METEOR, summarization, text generation, reference-based, semantic similarity, human evaluation]
+    scope: "What overlap and embedding-based metrics measure; where they fail for clinical text; when human or rubric-based evaluation is needed; reporting agreement."
+  - id: confidence-intervals-bootstrap
+    title: "Confidence intervals and the bootstrap for performance metrics"
+    area: Statistics
+    keywords: [confidence interval, bootstrap, bootstrapping, resampling, uncertainty, standard error, 95% CI, paired comparison]
+    scope: "What a confidence interval does and does not say; bootstrap resampling step by step; clustering by patient; comparing two models on the same test set; why a point estimate alone is not enough."
+  - id: multiple-comparisons
+    title: "Multiple comparisons and p-hacking in model evaluation"
+    area: Statistics
+    keywords: [multiple comparisons, multiple testing, Bonferroni, false discovery rate, p-hacking, subgroup analysis, forking paths, benchmark gaming]
+    scope: "Why many looks inflate false positives; Bonferroni and false discovery rate in plain terms; the garden of forking paths in prompts, models and subgroups; pre-registration and held-out evaluation."
+  # ------------------------------------------------------------------ study design
+  - id: data-leakage-cross-validation
+    title: "Data leakage, train-test splits and cross-validation"
+    area: Study design
+    keywords: [data leakage, leakage, cross-validation, train-test split, held-out, temporal validation, patient-level split, nested cross-validation, overfitting]
+    scope: "Common leakage routes (same patient in train and test, features from the future, preprocessing before splitting); k-fold, grouped and temporal splits; nested cross-validation for tuning; what a clean evaluation looks like."
+  - id: external-validation-shift
+    title: "External validation and distribution shift"
+    area: Study design
+    keywords: [external validation, distribution shift, dataset shift, generalizability, generalisability, temporal drift, site differences, transportability, model drift]
+    scope: "Internal vs external validation; covariate, label and concept shift; monitoring after deployment; what to check when a model moves to a new hospital or time period."
+  - id: sample-size-prediction
+    title: "Sample size for prediction models and evaluation sets"
+    area: Study design
+    keywords: [sample size, events per variable, power, test set size, precision of estimates, rare outcomes, validation sample size]
+    scope: "Why events, not rows, limit a prediction model; rough rules and their limits; how many cases an evaluation set needs for a useful interval; what small test sets can and cannot show."
+  - id: reporting-guidelines
+    title: "Reporting guidelines: TRIPOD, TRIPOD-LLM, STARD and CONSORT-AI"
+    area: Study design
+    keywords: [TRIPOD, TRIPOD-LLM, STARD, CONSORT-AI, reporting guideline, reproducibility, model card, checklist, transparent reporting]
+    scope: "What each guideline asks authors to report and why; what a reader should look for when judging an AI or LLM study; the gap between reporting and quality."
+  - id: missing-data
+    title: "Missing data: MCAR, MAR, MNAR and what to do about them"
+    area: Statistics
+    keywords: [missing data, imputation, multiple imputation, missingness, MCAR, MNAR, informative missingness, complete case]
+    scope: "The three missingness mechanisms; why complete-case analysis can mislead; multiple imputation in outline; missingness as a signal in electronic health records."
+  - id: causal-basics
+    title: "Confounding, causal thinking and target trial emulation for ML users"
+    area: Statistics
+    keywords: [confounding, causal inference, target trial emulation, propensity score, counterfactual, observational study, confounder, selection bias, collider]
+    scope: "Why predictive accuracy is not causal evidence; confounding and selection bias with examples; propensity scores and target trial emulation at a high level; what claims a prediction study can and cannot support."
+  - id: survival-time-to-event
+    title: "Survival analysis and time-to-event outcomes"
+    area: Statistics
+    keywords: [survival analysis, time-to-event, Kaplan-Meier, Cox, hazard ratio, censoring, competing risks, c-index, concordance]
+    scope: "Censoring; Kaplan-Meier and the hazard ratio in plain words; competing risks; how time-to-event evaluation differs from binary classification (concordance, time-dependent metrics)."
+  # ------------------------------------------------------------------ LLM evaluation
+  - id: inter-rater-agreement
+    title: "Inter-rater agreement: percent agreement, Cohen's kappa, Krippendorff's alpha and ICC"
+    area: LLM evaluation
+    keywords: [inter-rater, interrater, agreement, kappa, Cohen's kappa, Krippendorff, ICC, intraclass correlation, annotator, annotation, gold standard, reliability]
+    scope: "Why raw agreement is inflated by chance and prevalence; what kappa corrects and its known quirks; weighted kappa, Krippendorff's alpha and ICC for different data types; agreement between humans vs between a model and humans."
+  - id: llm-as-judge
+    title: "Using LLMs as judges: biases and how to validate them"
+    area: LLM evaluation
+    keywords: [LLM-as-judge, LLM judge, LLM-as-a-judge, rubric, position bias, verbosity bias, self-preference, automated evaluation, judge model]
+    scope: "What LLM-as-judge is; position, length and self-preference biases; calibrating a judge against human labels; reporting judge agreement; when not to use it."
+  - id: repeatability-reproducibility
+    title: "Repeatability and reproducibility of LLM outputs"
+    area: LLM evaluation
+    keywords: [repeatability, reproducibility, nondeterminism, stochastic, variance across runs, temperature, seed, prompt sensitivity, stability]
+    scope: "Why identical prompts can give different answers; separating repeatability (same setup) from reproducibility (different conditions); how many runs to report; how variability relates to accuracy."
+  - id: benchmark-contamination
+    title: "Benchmark contamination and what leaderboards really measure"
+    area: LLM evaluation
+    keywords: [contamination, benchmark, leaderboard, memorization, memorisation, MedQA, held-out benchmark, saturation, test set leakage]
+    scope: "How benchmark questions leak into training data; detecting and avoiding contamination; why exam-style benchmarks overstate clinical usefulness; private and dynamic evaluation sets."
+  - id: hallucination-faithfulness
+    title: "Hallucination, faithfulness and how to evaluate them"
+    area: LLM evaluation
+    keywords: [hallucination, faithfulness, factuality, grounded, unsupported claims, attribution, citation accuracy, confabulation]
+    scope: "Types of unsupported output; faithfulness to a source vs factual accuracy; claim-level checking; sampling and audit designs; mitigation by grounding and what it does not fix."
+  - id: subgroup-fairness
+    title: "Subgroup performance and fairness metrics"
+    area: Fairness
+    keywords: [fairness, bias, subgroup, equalized odds, demographic parity, disparity, health equity, race, calibration within groups, algorithmic bias]
+    scope: "Why overall metrics hide subgroup failures; common fairness definitions and why they conflict; reporting performance by group with intervals; limits of metric-based fairness."
+  - id: agents-tool-use-eval
+    title: "Evaluating LLM agents and tool use"
+    area: LLM evaluation
+    keywords: [agent, agentic, tool use, function calling, multi-step, workflow, task completion, trajectory, orchestration, autonomy]
+    scope: "What distinguishes agent evaluation from single-answer evaluation; task success vs process; safety checks and human oversight; cost, latency and failure analysis."
+  # ------------------------------------------------------------------ fine-tuning and model building
+  - id: lora-peft
+    title: "LoRA: low-rank adaptation explained"
+    area: Fine-tuning
+    keywords: [LoRA, low-rank adaptation, parameter-efficient, PEFT, fine-tuning, fine-tuned, adapter, rank]
+    scope: "The idea of learning a low-rank update to frozen weights; what rank and alpha control; what is trained and stored; memory savings; merging adapters; when LoRA matches full fine-tuning and when it does not."
+  - id: qlora-quantization
+    title: "Quantization and QLoRA"
+    area: Fine-tuning
+    keywords: [quantization, quantisation, QLoRA, 4-bit, 8-bit, int8, GPTQ, low-precision, memory footprint, on-premise]
+    scope: "What quantization does to weights and what it costs in accuracy; how QLoRA combines a quantized base with LoRA adapters; practical effects on memory and speed for local or on-premise models."
+  - id: peft-variants
+    title: "Beyond LoRA: adapters, prefix and prompt tuning, DoRA and friends"
+    area: Fine-tuning
+    keywords: [adapter, prefix tuning, prompt tuning, DoRA, soft prompt, IA3, parameter-efficient fine-tuning, PEFT]
+    scope: "A map of parameter-efficient methods: bottleneck adapters, prefix and prompt tuning, weight-decomposed methods; how they differ in what they train and in inference cost; how to choose."
+  - id: finetune-vs-prompt-vs-rag
+    title: "Fine-tuning, prompting or retrieval: choosing an approach"
+    area: Fine-tuning
+    keywords: [fine-tuning, few-shot, in-context learning, prompt engineering, retrieval-augmented, domain adaptation, instruction tuning, small language model]
+    scope: "What each approach changes; data and cost requirements; typical failure modes; how to compare them fairly on the same task."
+  - id: instruction-tuning-rlhf-dpo
+    title: "Instruction tuning, RLHF and DPO in outline"
+    area: Fine-tuning
+    keywords: [instruction tuning, RLHF, DPO, reinforcement learning from human feedback, preference optimization, alignment, reward model, post-training]
+    scope: "How a base model becomes an assistant; supervised instruction tuning vs preference-based methods; what these steps do and do not guarantee about accuracy or safety."
+  - id: distillation-small-models
+    title: "Distillation and small language models"
+    area: Fine-tuning
+    keywords: [distillation, knowledge distillation, small language model, SLM, student model, teacher model, synthetic data, local model]
+    scope: "Teacher and student models; training on model-generated labels; when small models are enough for extraction or classification; evaluation pitfalls with synthetic data."
+  # ------------------------------------------------------------------ LLM systems
+  - id: rag-basics
+    title: "Retrieval-augmented generation: how it works and how to evaluate it"
+    area: LLM systems
+    keywords: [RAG, retrieval-augmented, retrieval augmented generation, retriever, chunking, vector database, grounding, retrieval quality, reranking]
+    scope: "Chunking, embedding, retrieval and generation as separate steps; evaluating retrieval (recall at k) separately from answer quality; common failure modes; why RAG reduces but does not remove hallucination."
+  - id: embeddings-similarity
+    title: "Embeddings, cosine similarity and vector search"
+    area: LLM systems
+    keywords: [embedding, embeddings, cosine similarity, vector search, semantic search, nearest neighbor, sentence embedding, representation]
+    scope: "What an embedding is; cosine similarity intuition; approximate nearest-neighbour search; domain-specific vs general embeddings; typical uses and pitfalls in clinical text."
+  - id: tokenization-context
+    title: "Tokenization and context windows"
+    area: LLM systems
+    keywords: [tokenization, tokenizer, token, context window, long context, subword, lost in the middle, token limit, truncation]
+    scope: "What tokens are and why drug names and numbers fragment; context length vs effective use of context; truncation effects on clinical documents; cost in tokens."
+  - id: decoding-sampling
+    title: "Decoding and sampling: temperature, top-p and determinism"
+    area: LLM systems
+    keywords: [temperature, top-p, nucleus sampling, greedy decoding, sampling, decoding, determinism, seed, beam search]
+    scope: "How a model turns probabilities into text; what temperature and top-p change; greedy vs sampled decoding; why temperature zero is not always deterministic; reporting settings."
+  - id: prompting-methods
+    title: "Prompting methods: zero-shot, few-shot and chain-of-thought"
+    area: LLM systems
+    keywords: [zero-shot, few-shot, chain-of-thought, prompt engineering, in-context learning, prompt design, self-consistency, reasoning model]
+    scope: "What each method is and when it helps; sensitivity to wording and example choice; evaluating prompts without overfitting to the test set; reasoning models vs prompted reasoning."
+  - id: structured-extraction
+    title: "Information extraction with LLMs: schemas, validation and error analysis"
+    area: LLM systems
+    keywords: [information extraction, structured output, JSON schema, named entity recognition, NER, phenotyping, clinical notes, extraction, abstraction, chart review]
+    scope: "Designing an extraction schema; constrained or validated output; field-level vs document-level evaluation; error taxonomies; comparing to manual chart abstraction."
+  - id: uncertainty-conformal
+    title: "Uncertainty quantification and conformal prediction"
+    area: LLM systems
+    keywords: [uncertainty, conformal prediction, confidence score, abstention, selective prediction, verbalized confidence, coverage, prediction set]
+    scope: "Sources of uncertainty; why model-stated confidence is unreliable; conformal prediction's coverage guarantee in plain words; abstention and human review workflows."
+  # ------------------------------------------------------------------ clinical informatics
+  - id: computable-phenotypes
+    title: "Computable phenotypes and validating them against chart review"
+    area: Clinical informatics
+    keywords: [computable phenotype, phenotyping, phenotype algorithm, ICD codes, chart review, validation, electronic health record, EHR, positive predictive value, case definition]
+    scope: "What a computable phenotype is; code-based vs NLP-based definitions; validating with chart review (sampling, PPV, sensitivity); portability across sites."
+  - id: clinical-nlp-basics
+    title: "Clinical NLP basics: negation, context and de-identification"
+    area: Clinical informatics
+    keywords: [negation, NegEx, clinical NLP, de-identification, deidentification, PHI, clinical text, note, section detection, abbreviation]
+    scope: "Why clinical text is hard (negation, family history, abbreviations); rule-based and model-based approaches; de-identification and its risks; what to validate."
+  - id: privacy-phi-llm
+    title: "Privacy, PHI and using LLMs with clinical data"
+    area: Clinical informatics
+    keywords: [privacy, PHI, protected health information, HIPAA, de-identification, on-premise, data governance, federated, secure enclave, business associate agreement]
+    scope: "What counts as PHI; options (local models, secure cloud with agreements, de-identification); governance questions to ask; limits of de-identification."
+  - id: active-learning-weak-supervision
+    title: "Active learning, weak supervision and getting labels cheaply"
+    area: Clinical informatics
+    keywords: [active learning, weak supervision, labeling function, annotation cost, silver standard, label noise, programmatic labeling, snorkel]
+    scope: "Strategies for reducing annotation effort; weak or silver labels and their noise; evaluating on a trustworthy gold set; label noise effects on metrics."
+  - id: study-design-llm-prospective
+    title: "From retrospective evaluation to prospective trials of AI tools"
+    area: Study design
+    keywords: [prospective, randomized, randomised trial, pragmatic trial, deployment, silent mode, clinical impact, implementation, stepped-wedge, usability]
+    scope: "Levels of evidence for AI tools; silent-mode and shadow deployments; pragmatic and stepped-wedge trial designs; outcomes that matter beyond accuracy (workflow, safety, equity)."

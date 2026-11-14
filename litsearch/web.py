@@ -25,7 +25,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from .core import config, pagedata, tuning, watch
+from .core import config, methods, pagedata, tuning, watch
 from .core.db import DB
 
 log = logging.getLogger("litsearch.web")
@@ -83,11 +83,11 @@ class Api:
         except (OSError, ValueError, KeyError, TypeError):
             return None
 
-    def _spawn_podcast(self, redo: bool) -> int:
+    def _spawn_podcast(self, redo: bool, topic: str = "auto") -> int:
         logs = self.settings.root / "logs"
         logs.mkdir(exist_ok=True)
         out = open(logs / "podcast-ondemand.out", "ab")
-        proc = subprocess.Popen([sys.executable, "-m", "litsearch", "--stream", "podcast"] + (["--redo"] if redo else []),
+        proc = subprocess.Popen([sys.executable, "-m", "litsearch", "--stream", "podcast", f"--methods-topic={topic}"] + (["--redo"] if redo else []),
                                 cwd=str(self.settings.root), stdin=subprocess.DEVNULL, stdout=out, stderr=subprocess.STDOUT, start_new_session=True)
 
         def reap():
@@ -102,25 +102,37 @@ class Api:
         return proc.pid
 
     def _podcast_state(self) -> dict:
-        cfg = config.load_interests(self.settings.interests_path)["streams"].get("podcast", {})
-        day = datetime.now(self.settings.tz).date().isoformat()
+        full = config.load_interests(self.settings.interests_path)
+        cfg = full["streams"].get("podcast", {})
+        today = datetime.now(self.settings.tz).date()
+        day = today.isoformat()
         db = self._db()
         try:
+            cov = methods.covered(db, today, 365)
+            topics = [{"id": t["id"], "title": t["title"], "area": t["area"], "days_ago": (today - cov[t["id"]]).days if t["id"] in cov else None}
+                      for t in methods.load_curriculum(self.settings.root, full, cfg.get("methods_file", "config/methods_topics.yaml"))]
             row = db.conn.execute("SELECT stream_specific FROM items WHERE stream='podcast' AND source_id=?", (f"daily:{day}",)).fetchone()
             have = bool(row and json.loads(row["stream_specific"]).get("audio") and (self.settings.site_dir / json.loads(row["stream_specific"])["audio"]).exists())
             last = db.conn.execute("SELECT ok, finished, notes, error FROM runs WHERE stream='podcast' AND finished IS NOT NULL ORDER BY id DESC LIMIT 1").fetchone()
             run = self.podcast_running()
             return {"enabled": cfg.get("enabled", True), "running": bool(run), "started": run["started"] if run else None,
                     "episode_today": have, "spend_today": round(db.spent(day, "podcast"), 4), "cap": cfg.get("daily_cap_usd"),
-                    "est_cost": cfg.get("est_cost_usd", 0.22),
+                    "est_cost": cfg.get("est_cost_usd", 0.3), "methods": cfg.get("methods", True), "topics": topics,
                     "last": ({"ok": bool(last["ok"]), "finished": last["finished"], "notes": json.loads(last["notes"] or "[]"),
                               "error": last["error"] or ""} if last else None)}
         finally:
             db.close()
 
-    def _podcast_generate(self, redo: bool) -> tuple[int, dict]:
+    def _podcast_generate(self, redo: bool, topic: str = "auto") -> tuple[int, dict]:
+        topic = re.sub(r"[\x00-\x1f]", " ", topic).strip()
         with self._podcast_lock:
             st = self._podcast_state()
+            if topic.startswith("custom:"):
+                topic = "custom:" + re.sub(r"\s+", " ", topic[7:]).strip()[:120]
+                if len(topic) <= 7:
+                    return 400, {"error": "enter a topic, or choose Automatic"}
+            elif topic not in ("auto", "none") and topic not in {t["id"] for t in st["topics"]}:
+                return 400, {"error": "unknown topic"}
             if not st["enabled"]:
                 return 409, {"error": "the podcast is disabled in interests.yaml"}
             if st["running"]:
@@ -131,13 +143,13 @@ class Api:
             self._run_marker.parent.mkdir(exist_ok=True)
             self._run_marker.write_text(json.dumps({"pid": os.getpid(), "started": started}))        # claim the slot before spawning
             try:
-                pid = self.spawn(redo)
+                pid = self.spawn(redo, topic)
             except Exception as e:  # noqa: BLE001
                 self._run_marker.unlink(missing_ok=True)
                 log.exception("could not start the podcast run")
                 return 500, {"error": f"could not start: {type(e).__name__}: {e}"}
             self._run_marker.write_text(json.dumps({"pid": pid, "started": started}))
-            return 202, {"ok": True, "started": started, "redo": redo}
+            return 202, {"ok": True, "started": started, "redo": redo, "topic": topic}
 
     def _regenerate(self) -> None:
         """Rebuild the page data so an accepted preference re-ranks the page straight away."""
@@ -226,7 +238,10 @@ class Api:
             finally:
                 db.close()
         if path == "/api/podcast/generate":
-            return self._podcast_generate(body.get("redo") is True)
+            topic = body.get("topic", "auto")
+            if not isinstance(topic, str) or len(topic) > 200:
+                return 400, {"error": "topic must be a short string"}
+            return self._podcast_generate(body.get("redo") is True, topic)
         if path == "/api/tuning/decide":
             try:
                 pid, action = int(body["id"]), body.get("action")

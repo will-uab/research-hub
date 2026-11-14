@@ -135,7 +135,7 @@ def build_podcast(db: DB, site_dir: Path, limit: int = 7) -> dict:
             continue
         eps.append({"key": r["source_id"], "date": ss.get("date"), "title": r["title"], "headline": ss.get("headline", ""),
                     "audio": ss["audio"], "seconds": ss.get("seconds"), "bytes": ss.get("bytes"), "turns": ss.get("turns", []),
-                    "hosts": ss.get("hosts", {}), "dive": ss.get("dive"), "model": ss.get("model", ""), "generated": r["first_seen"]})
+                    "hosts": ss.get("hosts", {}), "dive": ss.get("dive"), "methods": ss.get("methods"), "model": ss.get("model", ""), "generated": r["first_seen"]})
         if len(eps) >= limit:
             break
     return {"episodes": eps}

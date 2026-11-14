@@ -422,7 +422,7 @@ def papi(world):
     (s.root / "config").mkdir(exist_ok=True)
     s.interests_path.write_text(config.render_v2_yaml(cfg))
     started = []
-    api = web.Api(s, spawn=lambda redo: started.append(redo) or os.getpid())
+    api = web.Api(s, spawn=lambda redo, topic='auto': started.append(redo) or os.getpid())
     return api, started, world
 
 
@@ -430,7 +430,7 @@ def test_api_generate_starts_a_run_once_and_reports_state(papi):
     import os
     api, started, world = papi
     code, st = api.get("/api/podcast", {})
-    assert code == 200 and st["enabled"] and not st["running"] and not st["episode_today"] and st["cap"] == 0.5 and st["est_cost"] == 0.22
+    assert code == 200 and st["enabled"] and not st["running"] and not st["episode_today"] and st["cap"] == 0.7 and st["est_cost"] == 0.3
     code, out = api.post("/api/podcast/generate", {})
     assert code == 202 and started == [False]
     assert api.get("/api/podcast", {})[1]["running"]
@@ -452,7 +452,7 @@ def test_api_generate_forgets_a_dead_run_and_reports_the_last_outcome(papi):
     api._run_marker.write_text(json.dumps({"pid": 2 ** 22 + 12345, "started": datetime.now(timezone.utc).isoformat()}))        # no such process
     assert not api.get("/api/podcast", {})[1]["running"]
     assert api.post("/api/podcast/generate", {})[0] == 202
-    spend(world, today_str(world), "podcast", 0.49)
+    spend(world, today_str(world), "podcast", 0.69)
     api._run_marker.unlink()
     run(world)                                                    # blocked by its own budget -> the note is surfaced to the page
     last = api.get("/api/podcast", {})[1]["last"]
@@ -462,7 +462,7 @@ def test_api_generate_forgets_a_dead_run_and_reports_the_last_outcome(papi):
 def test_api_generate_can_be_disabled_and_failures_release_the_slot(papi):
     import litsearch.core.config as config
     api, started, world = papi
-    def boom(redo):
+    def boom(redo, topic='auto'):
         raise OSError("no fork")
     api.spawn = boom
     code, out = api.post("/api/podcast/generate", {})

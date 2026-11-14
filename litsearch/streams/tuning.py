@@ -5,7 +5,9 @@ import json
 import logging
 import re
 
-from ..core import learned, triage, tuning
+from datetime import datetime, timedelta, timezone
+
+from ..core import learned, methods, triage, tuning
 from ..core.triage import ParseError
 from .base import Stream
 
@@ -77,8 +79,115 @@ def parse_response(text: str, cands: dict[str, dict], follows: dict[str, dict], 
             "notes": str(data.get("notes", "")).strip()[:700]}
 
 
+def topics_prompt(profile: str, preferences: str, n: int) -> str:
+    return f"""You curate a short curriculum of fundamental METHODS topics (informatics, AI/LLM and statistics) that an audio briefing teaches one researcher, one topic per episode.
+
+RESEARCHER'S PROFILE (hand-written)
+{profile.strip()}
+{('LEARNED PREFERENCES: ' + preferences.strip()) if preferences.strip() else ''}
+
+YOU RECEIVE
+The topics already in the curriculum, the topics covered recently, and titles of recent papers the pipeline found for this researcher.
+
+TASK
+Propose up to {n} NEW topics. Each must be a fundamental, teachable idea at textbook level (a concept, metric, design principle or technique, not a news item or a single paper), useful for reading or doing research in this researcher's areas, and clearly different from every existing topic. Prefer gaps that the recent papers suggest (methods they use but that the curriculum does not explain). If nothing deserves adding, return an empty list.
+For each give: "id" (a lowercase slug, letters, digits and hyphens), "title" (at most 12 words), "area" (a short category, reusing existing ones where they fit), "keywords" (5 to 10 words or phrases that would appear in abstracts of papers that use this idea), "scope" (two or three sentences on what the lesson covers and where it stops), "why" (one sentence on why this researcher would want it).
+
+OUTPUT
+Respond with ONLY a JSON object, no code fences:
+{{"topics": [{{"id": "...", "title": "...", "area": "...", "keywords": ["..."], "scope": "...", "why": "..."}}]}}"""
+
+
+def parse_topics(text: str, existing_ids: set[str], existing_titles: set[str], limit: int = 3) -> list[dict]:
+    """Validated, deduplicated topic suggestions (never anything that is already in the curriculum)."""
+    s = re.sub(r"^```(?:json)?\s*|\s*```$", "", (text or "").strip())
+    data = None
+    try:
+        data = json.loads(s)
+    except json.JSONDecodeError:
+        i, j = s.find("{"), s.rfind("}")
+        if i != -1 and j > i:
+            try:
+                data = json.loads(s[i:j + 1])
+            except json.JSONDecodeError:
+                pass
+    if not isinstance(data, dict) or not isinstance(data.get("topics"), list):
+        raise ParseError("no topics list")
+    out, ids, titles = [], set(existing_ids), {t.lower() for t in existing_titles}
+    for d in data["topics"][:8]:
+        t = methods.normalise_topic(d) if isinstance(d, dict) else None
+        if not t or len(t["keywords"]) < 3 or t["id"] in ids or t["title"].lower() in titles or not t["scope"]:
+            continue
+        ids.add(t["id"])
+        titles.add(t["title"].lower())
+        out.append({**t, "why": re.sub(r"\s+", " ", str(d.get("why", ""))).strip()[:220]})
+        if len(out) >= limit:
+            break
+    return out
+
+
 class TuningStream(Stream):
     name = "tuning"
+
+    # ---------------------------------------------------------------- methods curriculum suggestions (independent of ratings)
+    def maybe_suggest_topics(self) -> None:
+        """Every `topics_every_days`, suggest new methods topics for the podcast from your profile and recent papers (you approve each)."""
+        ctx, db, cfg = self.ctx, self.ctx.db, self.cfg
+        if not cfg.get("topics", True):
+            return
+        last = db.get_state("tuning:topics_last")
+        if last and not ctx.opts.dry_run and datetime.now(timezone.utc) - datetime.fromisoformat(last) < timedelta(days=int(cfg.get("topics_every_days", 14))):
+            return
+        if sum(1 for p in db.proposals(("pending",), 200) if p["kind"] == "topic") >= int(cfg.get("topics_max_pending", 3)):
+            return
+        curriculum = methods.load_curriculum(ctx.settings.root, ctx.cfg)
+        l = learned.normalise(ctx.cfg.get("learned"))
+        recent = [f"{r['title'][:110]}" for r in db.conn.execute(
+            "SELECT title FROM items WHERE stream IN ('literature','people') AND status IN ('sent','shown') AND relevance>=6 "
+            "ORDER BY id DESC LIMIT 60")]
+        cov = methods.covered(db, ctx.today, 365)
+        user = "\n".join(["EXISTING CURRICULUM:", *[f"{t['id']} | {t['area']} | {t['title']}" for t in curriculum], "",
+                          "COVERED RECENTLY: " + (", ".join(sorted(cov)) or "(none yet)"), "", "RECENT PAPERS FOR THIS RESEARCHER:", *recent])
+        n = int(cfg.get("topics_per_run", 3))
+        if ctx.opts.dry_run:
+            found = [{"id": "stub-topic", "title": "[dry-run stub] A suggested methods topic", "area": "Statistics", "keywords": ["a", "b", "c"],
+                      "scope": "[dry-run stub] What the lesson would cover.", "why": "[dry-run stub]"}]
+        else:
+            import anthropic
+            client = anthropic.Anthropic(api_key=ctx.settings.get("ANTHROPIC_API_KEY"), max_retries=3, timeout=180)
+            model, effort = ctx.settings.model_for(cfg), ctx.settings.effort_for(self.name)
+            found = None
+            for attempt in (1, 2):
+                try:
+                    got = triage.complete(client, model, effort, ctx.budget, topics_prompt(ctx.cfg["profile"], l["preferences"], n), user, 2500)
+                except Exception as e:  # noqa: BLE001
+                    log.exception("topic suggestion call failed")
+                    ctx.notes.append(f"tuning: topic suggestions skipped: {type(e).__name__}: {e}")
+                    return
+                if got is None:
+                    ctx.notes.append(f"tuning: topic suggestions skipped, budget guard ({ctx.budget.trip_reason})")
+                    return
+                text, stop = got
+                try:
+                    if stop in ("refusal", "max_tokens"):
+                        raise ParseError(f"stop_reason={stop}")
+                    found = parse_topics(text, {t["id"] for t in curriculum}, {t["title"] for t in curriculum}, n)
+                    break
+                except ParseError as e:
+                    log.warning("topic suggestions attempt %d unusable: %s", attempt, e)
+            if found is None:
+                ctx.notes.append("tuning: topic suggestions skipped, model output was not valid after one retry")
+                return
+        for t in found:
+            db.add_proposal(None, "topic", {k: t[k] for k in ("id", "title", "area", "keywords", "scope")}, t["why"], [], {})
+        if not ctx.opts.dry_run:
+            db.set_state("tuning:topics_last", datetime.now(timezone.utc).isoformat())
+        ctx.counts["topic_proposals"] = len(found)
+        log.info("[tuning] %d methods topic suggestion(s)", len(found))
+        if ctx.opts.dry_run:
+            print(f"\nDry run [tuning]: {len(found)} methods topic suggestion(s)")
+            for t in found:
+                print(f"   - {t['id']}: {t['title']}")
 
     def user_prompt(self, rated, cands, follows, dis, l) -> str:
         fmt = lambda r: (f"[{r['item_id']}] {SIGN[r['sign']]} | reason: {r.get('reason') or '-'} | model score then: "
@@ -98,6 +207,7 @@ class TuningStream(Stream):
 
     def execute(self) -> int:
         ctx, db, cfg = self.ctx, self.ctx.db, self.cfg
+        self.maybe_suggest_topics()
         rated = db.rated()
         last = db.latest_report()
         new = [r for r in rated if r["fid"] > (last["last_feedback_id"] if last else 0)]

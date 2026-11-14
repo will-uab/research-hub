@@ -134,3 +134,7 @@ input[type=range]{width:100%}
 .pod-gen{margin:2px 0 4px}
 .pod-gen .pill{font-size:14px;padding:8px 14px}
 .pod-gen .pill[disabled]{opacity:.7}
+.pod-topic{margin:6px 0 2px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.pod-topic select{max-width:100%}.pod-topic input{flex:1;min-width:12rem;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-size:14px}
+.mnotes h4{margin:10px 0 2px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#2e6b47}
+.mnotes ul{margin:2px 0 4px 18px;padding:0}.mnotes li{margin:3px 0;font-size:14px;line-height:1.4}.mnotes code{font-size:13px;background:#eef6f0;padding:1px 4px;border-radius:4px}

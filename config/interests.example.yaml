@@ -241,7 +241,7 @@ streams:
     enabled: true
     on_demand: true
     separate_budget: true
-    est_cost_usd: 0.22
+    est_cost_usd: 0.3
     schedule: on demand
     model_env: LLM_MODEL_PODCAST
     target_minutes: 10
@@ -250,7 +250,11 @@ streams:
     min_items: 3
     max_items: 30
     min_relevance: 5
-    daily_cap_usd: 0.5
+    daily_cap_usd: 0.7
+    methods: true
+    methods_minutes: 5
+    methods_repeat_days: 60
+    methods_link_min_score: 2.0
     keep_days: 30
     bitrate: 64k
     abstract_words: 90
@@ -265,6 +269,6 @@ streams:
       A: {name: Oliver, model: en_GB-alan-medium, length_scale: 0.85}
       B: {name: Hannah, model: en_US-hfc_female-medium, length_scale: 1.0}
   tuning: {enabled: true, schedule: '05:00', model_env: LLM_MODEL_TUNING, first_after: 10, every: 20, min_support: 3, min_share: 0.7,
-    daily_cap_usd: 0.1}
+    daily_cap_usd: 0.1, topics: true, topics_every_days: 14, topics_max_pending: 3, topics_per_run: 3}
   journal_club: {enabled: true, schedule: 'mon 04:35', model_env: LLM_MODEL_JOURNAL_CLUB, rotate_domains: true, lookback_days: 7,
     alternates: 2, min_relevance: 6}

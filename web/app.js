@@ -737,17 +737,27 @@ function podLastText(l) {
   const notes = (l.notes || []).filter((n) => /^podcast|deep dive/.test(n)).map((n) => n.replace(/^podcast:\s*/, ''));
   return l.ok ? notes.join(' · ') : `Last attempt failed: ${l.error || 'see the status panel'}`;
 }
+let podTopic = 'auto', podCustom = '';
+function topicPicker(a) {
+  const byArea = {};
+  (a.topics || []).forEach((t) => { (byArea[t.area] = byArea[t.area] || []).push(t); });
+  const opt = (v, label) => `<option value="${esc(v)}"${podTopic === v ? ' selected' : ''}>${esc(label)}</option>`;
+  const groups = Object.keys(byArea).sort().map((ar) => `<optgroup label="${esc(ar)}">${byArea[ar].map((t) => opt(t.id, t.title + (t.days_ago != null ? ` (covered ${t.days_ago} d ago)` : ''))).join('')}</optgroup>`).join('');
+  return `<div class="pod-topic"><label class="note">Methods segment <select id="pod-topic">${opt('auto', 'Automatic (linked to today\'s papers)')}${opt('none', 'None (skip it)')}${opt('custom', 'Custom topic…')}${groups}</select></label>
+    <input id="pod-custom" type="text" maxlength="120" placeholder="e.g. propensity score matching" value="${esc(podCustom)}" ${podTopic === 'custom' ? '' : 'hidden'}></div>`;
+}
 function renderPodControls() {
   const el = $('#pod-ctl'); if (!el) return;
   const a = podApi;
   if (!a || !a.enabled) { el.innerHTML = ''; return; }
-  const cost = '$' + (a.est_cost || 0.22).toFixed(2), left = a.cap != null ? Math.max(0, a.cap - a.spend_today) : null;
+  const cost = '$' + (a.est_cost || 0.3).toFixed(2), left = a.cap != null ? Math.max(0, a.cap - a.spend_today) : null;
   let btn, msg = '';
   if (a.running) {
     btn = '<button class="pill" disabled>⏳ Generating…</button>';
-    msg = 'Writing the script and recording it. This takes about 3 to 4 minutes; you can leave this page open or come back.';
+    msg = 'Writing the script and recording it. This takes about 5 to 6 minutes; you can leave this page open or come back.';
   } else {
-    btn = `<button class="pill on" data-podgen="${a.episode_today ? 'redo' : 'new'}">${a.episode_today ? '↻ Regenerate' : '🎙 Generate'} today's episode (~${cost})</button>`;
+    btn = `<button class="pill on" data-podgen="${a.episode_today ? 'redo' : 'new'}">${a.episode_today ? '↻ Regenerate' : '🎙 Generate'} today's episode (~${cost})</button>`
+      + (a.methods && (a.topics || []).length ? topicPicker(a) : '');
     msg = (left != null ? `Podcast budget today: $${a.spend_today.toFixed(2)} of $${a.cap.toFixed(2)} used (separate from the hub budget). ` : '') + podLastText(a.last);
   }
   el.innerHTML = `<div class="pod-gen">${btn}</div>${msg ? `<div class="note">${esc(msg)}</div>` : ''}`;
@@ -771,7 +781,8 @@ function renderPodcast(force) {
   const names = ep.hosts || {};
   let seg = 'news';
   const lines = (ep.turns || []).map((t) => {
-    const head = (t.segment === 'deep_dive' && seg !== 'deep_dive') ? `<h3 class="bs">Deep dive${ep.dive ? ': ' + esc(ep.dive.title) : ''}</h3>` : '';
+    const head = (t.segment === 'deep_dive' && seg !== 'deep_dive') ? `<h3 class="bs">Deep dive${ep.dive ? ': ' + esc(ep.dive.title) : ''}</h3>`
+      : (t.segment === 'methods' && seg !== 'methods') ? `<h3 class="bs">Methods${ep.methods ? ': ' + esc(ep.methods.title) : ''}</h3>` : '';
     seg = t.segment || 'news';
     return head + `<p><span class="spk">${esc(names[t.speaker] || t.speaker)}</span> ${citeText(t.text, order, byId)}</p>`;
   }).join('');
@@ -783,7 +794,9 @@ function renderPodcast(force) {
     ${ep.dive ? `<div class="note">🔬 Deep dive: <a href="${esc(safeUrl(ep.dive.url))}">${esc(ep.dive.title)}</a> · full text via ${esc(ep.dive.source)}</div>` : ''}
     <audio id="pod-audio" controls preload="none" src="${esc(ep.audio)}"></audio>
     <div class="pod-row"><span class="note">Speed</span>${[1, 1.25, 1.5, 1.75].map((s) => `<button class="pill${s === podSpeed ? ' on' : ''}" data-speed="${s}">${s}×</button>`).join('')}${pick}</div>
+    ${ep.methods ? `<div class="note">📐 Methods: ${esc(ep.methods.title)}${ep.methods.how === 'linked' ? ' · linked to today\'s papers' : ''}</div>` : ''}
     <details class="bsrc"><summary>Transcript and links${order.size ? ` (${order.size} items)` : ''}</summary><div class="transcript">${lines}</div>${refs ? `<ol>${refs}</ol>` : ''}</details>
+    ${methodsNotes(ep)}
     <div class="note">Written by Claude${ep.model ? ' (' + esc(ep.model) + ')' : ''}, read by synthetic voices · ${esc(ago(ep.generated))}</div></article>`;
   const a = $('#pod-audio');
   if (a) {
@@ -793,6 +806,16 @@ function renderPodcast(force) {
       navigator.mediaSession.metadata = new MediaMetadata({title: ep.headline || ep.title, artist: 'Research hub', album: ep.title});
     }
   }
+}
+function methodsNotes(ep) {
+  const m = ep.methods, n = m && m.notes;
+  if (!n || !(((n.summary || []).length) || ((n.formulas || []).length) || ((n.pitfalls || []).length))) return '';
+  const li = (a) => (a || []).map((x) => `<li>${esc(x)}</li>`).join('');
+  return `<details class="bsrc mnotes"><summary>Methods notes: ${esc(m.title)}</summary>
+    ${(n.summary || []).length ? `<h4>Key points</h4><ul>${li(n.summary)}</ul>` : ''}
+    ${(n.formulas || []).length ? `<h4>Formulas</h4><ul class="formulas">${n.formulas.map((f) => `<li><b>${esc(f.name)}</b> <code>${esc(f.text)}</code></li>`).join('')}</ul>` : ''}
+    ${(n.pitfalls || []).length ? `<h4>Common pitfalls</h4><ul>${li(n.pitfalls)}</ul>` : ''}
+    ${m.verified_example ? '<div class="note">The worked-example numbers in this segment were computed by code.</div>' : ''}</details>`;
 }
 let podTimer = null;
 function podPoll() {
@@ -808,9 +831,14 @@ function podPoll() {
 async function generatePodcast(redo) {
   const a = podApi; if (!a) return;
   const left = a.cap != null ? ` Podcast budget used today: $${a.spend_today.toFixed(2)} of $${a.cap.toFixed(2)}.` : '';
-  if (!confirm(`${redo ? 'Replace today\'s episode with a new one?' : 'Generate today\'s episode?'} It costs about $${(a.est_cost || 0.22).toFixed(2)} and takes 3 to 4 minutes.${left}`)) return;
+  const sel = $('#pod-topic'), custom = $('#pod-custom');
+  if (sel) podTopic = sel.value;
+  if (custom) podCustom = custom.value.trim();
+  if (podTopic === 'custom' && !podCustom) { showErr(new Error('Type a topic for the methods segment, or choose Automatic.')); return; }
+  const topic = podTopic === 'custom' ? 'custom:' + podCustom : podTopic;
+  if (!confirm(`${redo ? 'Replace today\'s episode with a new one?' : 'Generate today\'s episode?'} It costs about $${(a.est_cost || 0.3).toFixed(2)} and takes 5 to 6 minutes.${left}`)) return;
   try {
-    await apiCall('POST', 'api/podcast/generate', {redo: !!redo});
+    await apiCall('POST', 'api/podcast/generate', {redo: !!redo, topic});
     podApi = {...a, running: true, started: new Date().toISOString()};
     renderPodControls(); podPoll();
   } catch (e) { showErr(e); await loadPodApi(); renderPodControls(); }
@@ -824,6 +852,7 @@ document.addEventListener('click', (ev) => {
   if (ev.target.closest('#pod-link')) { ev.preventDefault(); const el = $('#podcast'); if (el && !el.hidden) el.scrollIntoView({behavior: 'smooth', block: 'start'}); }
 });
 document.addEventListener('change', (ev) => {
+  if (ev.target && ev.target.id === 'pod-topic') { podTopic = ev.target.value; const c = $('#pod-custom'); if (c) { c.hidden = podTopic !== 'custom'; if (!c.hidden) c.focus(); } }
   if (ev.target && ev.target.id === 'pod-pick') { podIdx = +ev.target.value; renderPodcast(true); }
 });
 
@@ -863,6 +892,9 @@ function proposalHtml(p, history) {
     head = `${pl.weight < 0 ? '↓ Deprioritize' : '↑ Prefer'} ${esc(pl.kind)} “${esc(pl.value)}” <span class="badge ${pl.weight < 0 ? 'b-amber' : 'b-green'}">${fmtW(pl.weight)}</span>`;
     body = `<div class="meta">You rated ${pl.likes + pl.dislikes} items with this: ${pl.likes} 👍 / ${pl.dislikes} 👎.</div>
       ${bt.matches !== undefined ? `<div class="meta">Backtest: it would have touched <b>${bt.matches}</b> item${bt.matches === 1 ? '' : 's'} in the last ${bt.days} days (${bt.liked} you liked, ${bt.disliked} you disliked, ${bt.unrated} unrated). Ranking only; nothing is hidden.</div>` : ''}`;
+  } else if (p.kind === 'topic') {
+    head = `📐 Add a methods topic: ${esc(pl.title)}`;
+    body = `<div class="meta">${esc(pl.area || '')} · linked to papers by these keywords: ${(pl.keywords || []).map(esc).join(', ')}</div><div class="ptext">${esc(pl.scope || '')}</div>`;
   } else {
     head = `👤 Follow ${esc(pl.name)}?`;
     body = `<div class="meta">On ${pl.likes} paper${pl.likes === 1 ? '' : 's'} you liked.</div>`;

@@ -161,6 +161,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--max-candidates", type=int, help="override the LLM candidate cap")
     ap.add_argument("--force", action="store_true", help="tuning: run even if too few new ratings have accumulated")
     ap.add_argument("--redo", action="store_true", help="podcast: replace today's episode (another model call)")
+    ap.add_argument("--methods-topic", default="auto", metavar="T",
+                    help="podcast: methods segment topic: auto (default), none, a topic id, or custom:<free text>")
     ap.add_argument("-v", "--verbose", action="store_true")
     args = ap.parse_args(argv)
 
@@ -169,7 +171,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         settings = config.load_settings(require_env=not args.dry_run)
         cfg = config.load_interests(settings.interests_path)
-        return pipeline.run(settings, cfg, RunOptions(args.dry_run, args.backfill, args.max_candidates, force=args.force, redo=args.redo), args.stream)
+        return pipeline.run(settings, cfg, RunOptions(args.dry_run, args.backfill, args.max_candidates, force=args.force, redo=args.redo, methods_topic=args.methods_topic), args.stream)
     except Exception as e:  # noqa: BLE001
         log.exception("Run failed")
         if settings is not None and not args.dry_run and args.stream == "literature":

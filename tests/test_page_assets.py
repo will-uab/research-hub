@@ -5,7 +5,7 @@ from pathlib import Path
 from litsearch.core import pagedata
 
 WEB = Path(__file__).resolve().parent.parent / "web"
-DYNAMIC = {"followbox", "wform", "wq", "wresults", "pod-audio", "pod-pick", "pod-ctl", "pod-ep"}          # created by the script itself (follow box), not in index.html
+DYNAMIC = {"followbox", "wform", "wq", "wresults", "pod-audio", "pod-pick", "pod-ctl", "pod-ep", "pod-topic", "pod-custom"}          # created by the script itself (follow box), not in index.html
 
 
 def ids_in_html():

@@ -214,9 +214,10 @@ STREAM_DEFAULTS: dict[str, dict] = {
         "min_items": 3, "max_items": 60, "lookback_hours": 26, "daily_cap_usd": 0.10, "min_relevance": 5,
     },
     "podcast": {
-        "enabled": True, "on_demand": True, "separate_budget": True, "est_cost_usd": 0.22, "schedule": "on demand",
+        "enabled": True, "on_demand": True, "separate_budget": True, "est_cost_usd": 0.30, "schedule": "on demand",
         "model_env": "LLM_MODEL_PODCAST", "target_minutes": 10, "monday_extra_minutes": 2,
-        "words_per_minute": 175, "min_items": 3, "max_items": 30, "min_relevance": 5, "daily_cap_usd": 0.50, "keep_days": 30,
+        "words_per_minute": 175, "min_items": 3, "max_items": 30, "min_relevance": 5, "daily_cap_usd": 0.70, "keep_days": 30,
+        "methods": True, "methods_minutes": 5, "methods_repeat_days": 60, "methods_link_min_score": 2.0,
         "abstract_words": 90, "dive": True, "dive_minutes": 4, "dive_min_relevance": 6, "dive_attempts": 12, "fulltext_chars": 28000,
         "bitrate": "64k", "voice_dir": "data/voices", "lexicon": "config/pronunciation.yaml",
         "hosts": {"A": {"name": "Oliver", "model": "en_GB-alan-medium", "length_scale": 0.85},
@@ -225,6 +226,7 @@ STREAM_DEFAULTS: dict[str, dict] = {
     "tuning": {
         "enabled": True, "schedule": "05:00", "model_env": "LLM_MODEL_TUNING", "first_after": 10, "every": 20,
         "min_support": 3, "min_share": 0.7, "daily_cap_usd": 0.10,
+        "topics": True, "topics_every_days": 14, "topics_max_pending": 3, "topics_per_run": 3,
     },
     "journal_club": {
         "enabled": True, "schedule": "mon 04:35", "model_env": "LLM_MODEL_JOURNAL_CLUB",
@@ -330,6 +332,8 @@ def render_v2_yaml(v2: dict) -> str:
            "\n# Soft preferences learned from your likes/dislikes. Maintained by approved tune-ups (🎛 Tuning on the page); edit freely.\n"
            "# They only re-rank (weights are clipped to -3..+2 on the 0-10 relevance scale); nothing is ever filtered out.\n",
            _dump({"learned": v2.get("learned") or {"preferences": "", "prefer": [], "deprioritize": []}}),
+           "\n# Methods topics you approved for the podcast's teaching segment (🎛 Tuning panel). The shared starting list is config/methods_topics.yaml.\n",
+           _dump({"methods_topics": v2.get("methods_topics") or []}),
            "\n# ---- Domains ---------------------------------------------------------------------------\n",
            _dump({"domains": v2["domains"]}),
            "\n# ---- Streams ---------------------------------------------------------------------------\n",
@@ -364,6 +368,7 @@ def load_interests(path: Path) -> dict:
         if key not in cfg:
             raise ValueError(f"{path}: missing top-level key '{key}'")
     cfg.setdefault("people_to_watch", [])
+    cfg.setdefault("methods_topics", [])
     from . import learned as _learned
     cfg["learned"] = _learned.normalise(cfg.get("learned"))
     return cfg
